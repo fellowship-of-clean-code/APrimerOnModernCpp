@@ -1,6 +1,6 @@
-## Lesson 1: Hello world!
+# Lesson 1: Hello world!
 
-### Basic compilation
+## Basic compilation
 The easiest way to compile is:
 ```sh
 g++ hello.cpp [-o hello.out]
@@ -11,7 +11,7 @@ This will build a program `hello.out` which is ready to run:
 ./hello.out
 ```
 
-### Compilation flags
+## Compilation flags
 There are a lot of flags that can be passed while compiling the code.
 
 * To select the C++ version use:
@@ -33,7 +33,7 @@ or
 -O3 or -Ofast (for full optimizations)
 ```
 
-### Compilation step-by-step
+## Compilation step-by-step
 Let’s write our first C++ code in a file with name `main.cpp`:
 ```cpp
 #include <iostream>
@@ -59,7 +59,7 @@ The difference between *compiling* and *assembling* is subtle, but you can satis
 
 /Link to Exercise 1/
 
-### Compilation of more than one file
+## Compilation of more than one file
 
 Function declaration can be separated from the implementation details.
 
