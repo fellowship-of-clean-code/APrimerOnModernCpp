@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>A primer on modern C++</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" href="./assets/katex.min.css">
+    <link rel="stylesheet" href="./assets/style.css">
+    <link rel="stylesheet" href="./assets/grid.css">
+    <link rel="stylesheet" href="./assets/animate.min.css">
+    <style type="text/css">
+      /* Slideshow styles */
+    </style>
+  </head>
+  <body>
+
+<!-- *********************** Start of slide content ********************** -->
+<textarea id="source">
+
+class: title-slide
+
+# A primer on modern C++
+
+.smaller.center[Carmelo Evoli (GSSI/INFN)]
+
+.center[based on ]
+
+<!--.center[arxiv:2010.07032] -->
+
+<!--.center[
+.width-25[![](figures/gallery_obs.png)]
+.width-25[![](figures/gallery_fit.png)]
+.width-25[![](figures/gallery_true_src.png)]
+] -->
+
+.right[19 January 2023
+
+GSSI Colloquium]
+
+<br>
+<br>
+
+---
+
+class: black-slide
+
+# Contents
+
+.block.grid[
+.kol-1-2[
+.center.bold[Lecture 1]
+- Data types
+- **Functions**
+- Containers and algorithms
+]
+.kol-1-2[
+.center.bold[Lecture 2]
+- **Smart pointers**
+- Classes
+- Template meta-programming
+]
+]
+
+.footnote[Suggested reading:]
+
+---
+
+# Hello world!
+
+## Basic compilation
+
+Let's write our (very) first example (`ex1.cpp`):
+
+```cpp
+#include <iostream>
+
+void print_it(std::string s) {
+   std::cout << s << std::endl;
+}
+
+int main() {
+   print_it("Hello world!");
+}
+```
+
+The easiest way to compile is:
+```sh
+g++ hello.cpp [-o hello.out]
+```
+
+This will build a program `hello.out` which is ready to run:
+```sh
+./hello.out
+```
+
+---
+
+## Compilation flags
+There are a lot of flags that can be passed while compiling the code.
+
+* To select the C++ version use:
+```sh
+-std=c++17
+```
+
+* To enable all warnings and treat them as errors:
+```sh
+-Wall, -Wextra, -Werror
+```
+
+* Optimization options:
+```sh
+-O0 # no optmization
+```
+or
+```sh
+-O3 or -Ofast # for full optimizations
+```
+
+---
+
+## Compilation step-by-step
+
+To compile it we perform 4 distinct actions:
+
+```sh
+g++ -E main.cpp > main.i # preprocess
+g++ -S main.i # compilation
+g++ -c main.s # assembly
+g++ main.o -o main.out # linking
+```
+
+The difference between **compiling** and **assembling** is subtle, may you want to satisfy your curiosity look at [this](https://www.geeksforgeeks.org/difference-between-compiler-and-assembler/) 👈
+
+## Pre-processor directives
+
+E.g., adding libraries:
+```cpp
+#include <iostream>
+```
+
+or exploiting global variables or macros:
+```cpp
+#define TABLE_SIZE 100
+#undef TABLE_SIZE
+#define getmax(a,b) a>b?a:b
+```
+
+👎 bad programming style
+
+<!--.footnote[Exercise 1]-->
+  
+---
+  
+## Compilation of more than one file
+
+Function declaration can be separated from the implementation details.
+
+E.g., function **declaration** is:
+```cpp
+void FuncName(int param); 
+```
+
+while function **definition** is:
+```cpp
+void FuncName(int param) {
+   // Implementation details.
+   std::cout << "This function is called!";
+} 
+```
+
+We move the declaration of `print_it` in a **header** file, e.g., `print_it.h`:
+```cpp
+void print_it(std::string s);
+```
+
+and the definition in a **source** file, e.g., `print_it.cpp`  
+```cpp
+void print_it(std::string s) {
+   std::cout << s << std::endl;
+}
+```
+
+---
+  
+Now the main file becomes
+```cpp
+#include "print_it.h"
+
+int main() {
+   print_it("Hello world!");
+}
+```
+
+notice the different marks for `print_it.h`! ✋
+
+How does `main.cpp` know about the **definition** of this function? 🤌
+
+We use **modules**! (`ex2.cpp`)
+
+```sh
+g++ -std=c++14 -c print_string.cpp # compile modules 
+
+ar rcs libtools.a print_string.o # organize modules into libraries
+
+g++ -std=c++14 -c main.cpp # compile main
+
+g++ -std=c++14 main.o -L. -ltools -o hello.out # link main to libraries
+```
+
+Building by hand is hard! We need **build systems** as, e.g., [CMake](https://cmake.org/)
+
+<!--.footnote[Exercise 2]-->
+  
+---
+  
+# Basic Syntax
+
+## C++ types
+
+* Each object, reference, function, expression in C++ is associated with a **type**, which may be **fundamental**, **compound**, or **user-defined**
+
+* C++ is a **strongly typed** language.
+
+```cpp
+float a; 
+bool b; 
+MyType c; // incomplete
+MyType c{}; // complete
+std::vector v;
+std::string s;
+```
+
+---
+
+## C++ identifiers
+* An **identifier** is an arbitrarily long sequence of digits, underscores, lowercase and uppercase Latin letters, and most Unicode characters.
+* A valid identifier must begin with a **non-digit** (with a letter or an underscore)
+* Identifiers are case-sensitive
+* Reserved words (like C++ keywords, such as `int`) cannot be used as names
+
+```cpp
+int s_my_var; // valid identifier
+int S_my_var; // valid but different 
+int 6_a; // NOT valid 
+```
+
+---
+
+## Variable visibility
+
+* Each variable identifier is only valid within a part of the program called its **scope**
+
+```cpp
+{ // this defines a new scope
+   float var_fl; // var_f is valid within this scope  
+} // this defines end of the scope
+
+std::cout << var_fl; // Error! var_fl outside its scope 
+
+int var_fl; // valid, var_fl not declared 
+```
+
+---
+
+## If statement
+
+* Used to conditionally execute code
+
+```cpp
+if (STATEMENT) {
+   // This is executed if STATEMENT == true
+} else if (OTHER_STATEMENT) {
+   // This is executed if:
+   // (STATEMENT == false) && (OTHER_STATEMENT == true)
+} else {
+   // This is executed if neither is true
+}
+```
+
+* **STATEMENT** can be **any boolean expression**
+
+```cpp
+if (x <= 1) {
+   do.this();
+} else if (x > 1 && x < 10) { // why?
+   do.that();
+} else ...
+```
+
+---
+
+## Switch statement
+
+* Used to conditionally execute code
+
+```cpp
+switch (STATEMENT) {
+   case CONST_1:
+   // This runs if STATEMENT == CONST_1.
+   break;
+case CONST_2:
+   // This runs if STATEMENT == CONST_2.
+   break;
+default:
+   // This runs if no other options worked.
+}
+```
+
+* **break** exits the **switch** block
+* **STATEMENT** usually returns **int** or **enum** value
+
+---
+
+Example using `enum class`:
+```cpp
+#include <iostream>
+
+int main() {
+    enum class RGB { RED, GREEN, BLUE };
+    RGB color = RGB::GREEN;
+    
+    switch (color) {
+       case RGB::RED:
+          std::cout << “red\n”;
+          break;
+       case RGB::GREEN:
+          std::cout << “green\n”;
+          break;
+       case RGB::BLUE:
+          std::cout << “blue\n”;
+          break;
+    }
+    return EXIT_SUCCESS;
+}
+```
+
+---
+
+## While loop
+
+```cpp
+while (STATEMENT) {
+    // Loop while STATEMENT == true.
+}
+```
+
+* Usually used when the exact number of iterations is unknown before-hand
+* Easy to form an endless loop by mistake 😱
+
+```cpp
+void printNfibonacciNumbers(int n) {
+    if (n < 1) return;
+
+    int first = 0, second = 1;
+    std::cout << first << " ";
+
+    int i = 1;
+    while (i < n) {
+        std::cout << second << " ";
+
+        const auto third = first + second;
+        first = second;
+        second = third;
+
+        i++;
+    }
+}
+```
+
+---
+
+## For loop
+
+```cpp
+for (int i = 0; i < COUNT; ++i) {
+   // This happens COUNT times.
+}
+```
+
+* In C++ **for** loops are very fast.
+* Use **for** when number of iterations is fixed and **while** otherwise.
+* Iterating over a standard containers like **array** or **vector** has simpler syntax (C++11) :
+
+```cpp
+for (const auto& value : container) {
+   // This happens for each value in the container.
+}
+```
+
+* Iterating over maps (C++17):
+
+```cpp
+std::map<char, int> my_dict{{‘a’, 27}, {‘b’, 3}};
+
+for (const auto& [key, value] : my_dict) {
+   cout << key << “ has value “ << value << endl;
+}
+```
+
+---
+
+## Exit loops
+
+* We have control over loop iterations
+* Use **break** to exit the loop
+* Use **continue** to skip to next iteration
+* Very bad style, use only if absolutely necessary ✋
+
+---
+
+## Built-in types
+
+```cpp
+bool this_is_fun = true; // Boolean: true or false
+char carret_return = ‘\n’;  // Single character
+int meaning_of_life = 42; // Integer number
+short smaller_int = 42; // Short number
+long bigger_int = 42; // Long number
+float fraction = 0.01f; // Single precision float
+double precise_num = 0.01; // Double precision float
+auto some_int = 13;
+auto some_float = 13.0f;
+auto some_double = 13.0;
+std::array<int, 3> arr = {1, 2, 3};// Array of integers
+```
+
+* C++11: The **auto** keyword specifies that the type of the variable that is being declared will be automatically deducted from its initializer
+* C++11: introducing uniform initialisation
+* **Always initialize** variables if you can
+
+---
+
+## More on **uniform initialisation**
+
+* With C++11, everything can be initialized in much the same way:
+
+```cpp
+int i; // uninitialized built-in type
+int j=10; // initialized built-in type
+int k(10); // initialized built-in type
+int a[]={1, 2, 3, 4} // Aggregate initialization
+X x1; // default constructor
+X x2(1); // Parameterized constructor
+X x3=3;  // Parameterized constructor with single argument
+X x4=x3; // copy-constructor
+```
+
+which can be rewritten as
+
+```cpp
+int i{}; // initialized built-in type, equals to int i{0};
+int j{10}; // initialized built-in type
+int a[]{1, 2, 3, 4} // Aggregate initialization
+X x1{}; // default constructor
+X x2{1}; // Parameterized constructor;
+X x4{x3}; // copy-constructor
+```
+
+---
+
+## More on **uniform initialisation**
+
+```cpp
+#include <iostream>
+
+void print_list(const std::initializer_list<int> &list) {
+   for (auto itm : list) {
+      std::cout << itm << " ";
+   }
+   std::cout << "\n";
+}
+
+int main() {
+   print_list({1, 2, 3, 5, 8, 13});
+   return EXIT_SUCCESS;
+}
+```
+
+---
+
+## More on **auto**
+
+auto-typed variables are deduced by the compiler according to the type of their initializer.
+
+```cpp
+auto a = 3.14; // double
+auto b = 1; // int
+auto& c = b; // int&
+auto d = { 0 }; // std::initializer_list<int>
+auto&& e = 1; // int&&
+auto&& f = b; // int&
+auto g = new auto(123); // int*
+const auto h = 1; // const int
+auto i = 1, j = 2, k = 3; // int, int, int
+auto l = 1, m = true, n = 1.61; // error -- `l` deduced to be int, `m` is bool
+auto o; // error -- `o` requires initializer
+```
+
+Extremely useful for readability, especially for complicated types:
+
+```cpp
+std::vector<int> v = ...;
+std::vector<int>::const_iterator cit = v.cbegin();
+// vs.
+auto cit = v.cbegin();
+```
+
+---
+
+## Use of variables
+
+* Give variables **meaningful names**
+* Don’t be afraid to **use longer names**
+* Don’t include type **in the name**
+* All variables die at the end of **their** scope
+
+```cpp
+int main() { // Start of main scope.
+    float some_float = 13.13f; // Create variable.
+    { // New inner scope.
+        auto another_float = some_float; // Copy variable.
+    } // another_float dies.
+    return 0;
+} // some_float dies.
+```
+
+---
+
+* Always use **const** to declare a constant
+
+* Use **constexpr** to declare that it is possible to evaluate the value of the function or variable at compile time (C++11)
+
+```cpp
+const auto hPlanck = 1.0;
+const auto cLight = 1.0;
+const auto kBoltzmann = 1.0;
+
+double blackbody(double nu, double T) {
+    constexpr auto k = 2. * hPlanck / cLight / cLight;
+    const auto x = h * nu / kBoltzmann / T;
+    return k * nu * nu * nu / std::expm1(x);
+}
+```
+
+---
+
+## References to variables
+
+* Use **&** to state that a variable is a reference
+* Whatever happens to a reference happens to the variable and vice versa
+* Yields performance gain as references **avoid copying data**
+
+```cpp
+double original_variable = 1.;
+std::string hello = "Hello!";
+
+double& ref = original_variable;
+std::string& hello_ref = hello;
+```
+
+* To avoid unwanted changes use **const**:
+
+```cpp
+const double& ref = original_variable;
+const std::string& hello_ref = hello;
+```
+
+of course
+
+```cpp
+const auto& ref = original_variable;
+const auto& hello_ref = hello;
+```
+
+---
+
+# Functions
+
+<mark>The main way of getting something done in a C++ program is to call a function to do it (Bjarne Stroustrup)</mark>
+
+---
+
+* In fact, a C++ code can be just a list of functions:
+
+```cpp
+ReturnType FuncName(ParamType1 in_1, ParamType2 in_2) {
+    // Some awesome code here.
+    return return_value;
+}
+```
+
+* Functions create a **scope**
+* Single return value from a function
+* Any number of input variables of any types (in fact, you don’t need to specify the number of arguments in C++14):
+```cpp
+double average(int num, ...) { ... }
+```
+* Should do only one thing and do it right (👉 UnitTests)
+* Name must show what the function does  (if you **can’t pick a short name** for a function most likely the function is doing too many things)
+
+---
+
+## Return type
+
+* Could be any of the unique types (int, std::string, etc… )
+
+* Could be `void`, also called **subroutine** or **procedure**
+
+* If return type is void, must **NOT** return any value.
+
+* Type could be automatically deduced (C++14):
+
+```cpp
+std::map<char, int> GetDictionary() {
+    return std::map<char, int>{{‘a’, 27}, {‘b’, 3}};
+}
+```
+
+can be written as
+
+```cpp
+auto GetDictionary() {
+    return std::map<char, int>{{‘a’, 27}, {‘b’, 3}};
+}
+```
+    
+---
+
+* To return more than one type (as in Python), one can use **structure binding** (C++17):
+
+```cpp
+#include <iostream>
+#include <tuple>
+
+auto Foo() {
+    return std::make_tuple(“Super Variable”, 5);
+}
+
+int main() {
+    auto [name, value] = Foo();
+    std::cout << name << “ has value :” << value << std::endl;
+    return 0;
+}
+```
+
+* A `tuple` is an object capable to hold a **collection** of elements. Each element can be of a different type.
+
+---
+
+## Local versus static variables
+
+* A local variable is initialized when the execution reaches its definition.
+* Any local variable will be destroyed when the execution exit the **scope** of the function.
+
+<!-- exercise: Never return reference to locally variables! -->
+
+* **static** variable, a single, statically allocated object represent that variable in **all** calls (`ex4.cpp`).
+
+```cpp
+#include <iostream>
+
+auto counterBefore() {
+  static size_t c = 0;
+  return (++c);
+}
+
+auto counterAfter() {
+  static size_t c = 0;
+  return (c++);
+}
+
+int main() {
+  for (size_t i = 0; i < 10; ++i) {
+    std::cout << counterBefore() << " " << counterAfter() << "\n";
+  }
+  return EXIT_SUCCESS;
+}
+```
+
+---
+
+## Argument list
+
+Arguments can be passed by **value** or by **reference** (or by **const reference**):
+
+```cpp
+void f(type arg1, type arg2) {
+   // f holds a copy of arg1 and arg2
+}
+
+void f(type& arg1, type& arg2) {
+   // f holds a referecnce of arg1 and arg2
+   // f could possibly change the content of arg1 or arg2
+}
+
+void f(const type& arg1, const type& arg2) {
+   // f can’t change the content of arg1 nor arg2
+}
+```
+
+* why using **const references**? Great speed as we pass a reference and passed object stays intact!
+* Functions can accept default arguments (but only **set in declaration** not in definition)
+
+---
+
+```cpp
+enum class Score { A, B, C, D };
+
+/* declaration */
+void set_score_GSSI_student(const std::string &name, Score score = Score::A);
+
+/* definition */
+void set_score_GSSI_student(const std::string &name, Score score) {
+  auto student_score = std::make_pair(name, score);
+  switch (score) {
+  case Score::A:
+    std::cout << student_score.first << " scored A\n";
+    break;
+  default:
+    std::cout << "grade not found\n";
+  }
+}
+
+int main() {
+  set_score_GSSI_student("Ermenegildo Bottiglione");
+  return EXIT_SUCCESS;
+}
+```
+
+---
+
+## Inline functions
+
+* **function** calls are expensive… not that dramatic tough
+
+* `inline` is a **hint** to the compiler to generate code for a call rather than a function call.
+
+```cpp
+inline double multiplyBy2(double x) {
+    return x * 2;
+}
+```
+* Sometimes the compiler do it anyways (`-O3`).
+
+---
+
+## Function overloading (C++11)
+
+```cpp
+#include <cmath>
+
+// ONE cos function to rule them all
+double cos(double x);
+float cos(float x);
+long double cos(long double x);
+```
+
+* Compiler infers a function from arguments
+
+* It cannot overload based on **return** type
+
+---
+
+## Good practices
+
+* Keep the length of functions **small** enough.
+
+* One function should achieve **ONE** task.
+
+* Avoid **unnecessary** comments.
+
+<mark>Code is like humor. When you have to explain it, it’s bad (Cory House)</mark> 🤭
+
+---
+
+## Namespaces
+
+* Helps avoiding name conflicts
+
+* Group the project into logical modules
+
+```cpp
+#include <iostream>
+
+namespace fun {
+int GetMeaningOfLife(void) { return 42; }
+} // namespace fun
+
+namespace boring {
+int GetMeaningOfLife(void) { return 0; }
+} // namespace boring
+
+int main() {
+    std::cout << boring::GetMeaningOfLife() << " " << fun::GetMeaningOfLife() << "\n";
+    return 0;
+}
+```
+
+* Avoid
+
+```cpp
+using namespace <name>
+```
+
+in particular not use `using namespace std` 🙏
+
+---
+
+* Prefer using explicit **using**
+
+```cpp
+#include <cmath>
+#include “my_pow.hpp”
+
+using std::cout;
+using std::endl;
+
+int main() {
+    std_result = std::pow(2,3); // Standard pow.
+    my_result = my_pow::pow(2,3); // User defined pow.
+    {
+        using std::pow;
+        result = pow(2,3); // Same as std::pow
+    }
+    {
+        using my_pow::pow;
+        result = pow(2,3); // Same as my_pow::pow
+    }
+    
+    cout << "nice example!" << endl;
+    return 0;
+}
+```
+
+---
+
+## Function objects, and Lambda Functions
+
+* function pointer (deprecated):
+
+```cpp
+// C++ program to pass function as a pointer to any function
+
+#include <iostream>
+ 
+int add(int x, int y) { return x + y; }
+ 
+int multiply(int x, int y) { return x * y; }
+ 
+int invoke(int x, int y, int (*func)(int, int)) {
+    return func(x, y);
+}
+ 
+int main() {
+    std::cout << "Addition of 20 and 10 is ";
+    std::cout << invoke(20, 10, &add) << '\n';
+ 
+    std::cout << "Multiplication of 20 and 10 is ";
+    std::cout << invoke(20, 10, &multiply) << '\n';
+ 
+    return EXIT_SUCCESS;
+}
+```
+
+---
+
+* STL Functional (C++11):
+
+```cpp
+#include <functional>
+#include <iostream>
+ 
+int add(int x, int y) { return x + y; }
+
+int multiply(int x, int y) { return x * y; }
+ 
+int invoke(int x, int y, std::function<int(int, int)> f) {
+    return f(x, y);
+}
+ 
+int main(){
+    std::cout << "Addition of 20 and 10 is ";
+    std::cout << invoke(20, 10, &add) << '\n';
+ 
+    std::cout << "Multiplication of 20 and 10 is ";
+    std::cout << invoke(20, 10, &multiply) << '\n';
+ 
+    return EXIT_SUCCESS;
+}
+```
+
+---
+
+* Lambda expressions (C++11):
+
+```cpp
+#include <functional>
+#include <iostream>
+  
+int invoke(int x, int y, std::function<int(int, int)> f) {
+    return f(x, y);
+}
+ 
+int main(){
+    std::cout << "Addition of 20 and 10 is ";
+    std::cout << invoke(20, 10, [](int x, int y)-> int { return x + y; }) << '\n';
+
+    std::cout << "Multiplication of 20 and 10 is ";
+    std::cout << invoke(20, 10, [](int x, int y) { return x * y; }) << '\n';
+
+    return EXIT_SUCCESS;
+}
+```
+
+---
+
+## Lambda expressions
+
+* Lambdas in C++ provide a way to define inline, one-time, anonymous function objects
+
+* It features: a capture list; an optional set of parameters with an optional trailing return type; and a body.
+
+Examples of capture lists:
+
+* `[]` captures nothing.
+* `[=]` capture local objects (local variables, parameters) in scope by value.
+* `[&]` capture local objects (local variables, parameters) in scope by reference.
+* `[this]` capture **this** by reference.
+* `[a, &b]` capture objects a by value, b by reference.
+
+---
+
+# C++ STL Library
+
+## Why containers?
+
+* Code readability.
+
+* More functionalities than arrays (`size()`, `empty()`, `front()`, `back()`, `swap()`, ...)
+
+* STL algorithms...
+
+---
+
+## Size of container
+
+* `sizeof()`
+
+```cpp
+int data [17]; // C-vector syntax
+size_t data_size = sizeof(data) / sizeof(data[0]);
+printf("Size of array: %zu\n", data_size);
+```
+
+* `size()`
+
+```cpp
+std::array<int, 17> data_ {};
+std::cout << "Size of array: " << data_.size() << endl;
+```
+
+---
+
+## Empy container
+
+* No standard way of checking if empty
+
+```cpp
+int empty_arr [10];
+printf("Array empty: %d\n", empty_arr[0] == NULL);
+
+int full_arr[5] = {1, 2, 3, 4, 5};
+printf("Array empty: %d\n", full_arr[0] == NULL);
+```
+
+* `empty()`
+
+```cpp
+std::vector<int> empty_vec_ {};
+std::cout << "Array empty: " << empty_vec_.empty() << "\n";
+
+std::vector<int> full_vec_{1, 2, 3, 4, 5};
+std::cout << "Array empty: " << full_vec_.empty() << "\n";
+```
+
+---
+
+## Access last element
+
+* No robust way of doing it
+
+```cpp
+float f_arr[N] = {1.5, 2.3};
+// is it 3, 2 or 900?
+printf("Last element: %f\n", f_arr[3]);
+```
+
+* `back()`:
+
+```cpp
+std::array<float, 2> f_arr_{1.5, 2.3};
+std::cout << "Last Element: " << f_arr_.back() << std::endl;
+```
+
+---
+
+## `std::array`
+
+* Store a **collection of items** of same type
+
+* Access items with **arr[i]** indexing starts with 0, or use **arr.get(i)**, differences?
+
+* Number of stored items: `arr.size()`
+
+```cpp
+#include <array>
+#include <iostream>
+
+using std::cout;
+using std::endl;
+
+int main() {
+   std::array<float, 3> data{10.0F, 100.0F, 1000.0F};
+   for (const auto& elem : data) {
+      cout << elem << endl; }
+      cout << std::boolalpha;
+      cout << "Array empty: " << data.empty() << endl;
+      cout << "Array size : " << data.size() << endl;
+   }
+}
+```
+
+---
+
+## `std::vector`
+
+* Vector is implemented as a dynamic table (access slower than array)
+
+* Remove all elements: `vec.clear()`
+
+* Add a new item in one of two ways:
+  `vec.emplace_back(value)` (preferred in C++ 11) or `vec.push_back(value)` (historically better known)
+
+```cpp
+#include <iostream>
+#include <string>
+#include <vector>
+    
+using std::cout;
+using std::endl;
+
+int main() {
+   std::vector<int> numbers = {1, 2, 3};
+   std::vector<std::string> names = {"Nacho", "Cyrill"};
+
+   names.emplace_back("Roberto");
+
+   cout << "First name : " << names.front() << endl;
+   cout << "Last number: " << numbers.back() << endl;
+   
+   return EXIT_SUCCESS;
+}
+```
+
+---
+
+## Optimize vector resizing
+
+* `std::vector size` unknown.
+
+* Therefore a capacity is defined.
+
+* size≠capacity
+
+* Many push_back/emplace_back operations force vector to change its capacity many times
+
+* `reserve(n)` ensures that the vector has enough memory to store `n` items
+
+* The parameter `n` can even be approximate but **This is a very important optimization**
+
+---
+
+```cpp
+int main() {
+   const int N = 100;
+   vector<int> vec; // size 0, capacity 0 vec.reserve(N); // size 0, capacity 100
+   for (int i = 0; i < N; ++i) {
+      vec.emplace_back(i);
+   }
+// vec ends with size 100, capacity 100 vector<int> vec2; // size 0, capacity 0
+   for (int i = 0; i < N; ++i) {
+      vec2.emplace_back(i);
+   }
+// vec2 ends with size 100, capacity 128
+}
+```
+
+<!-- *********************** End of slide content ********************** -->
+
+</textarea>
+
+    <script src="./assets/remark-latest.min.js"></script>
+    <script src="./assets/katex.min.js"></script>
+    <script src="./assets/auto-render.min.js"></script>
+    <script src=""></script>
+
+    <script type="text/javascript">
+      var options = {ratio:'14:9'};
+      var renderMath = function() {
+        renderMathInElement(document.body);
+        // or if you want to use $...$ for math,
+        renderMathInElement(document.body, {delimiters: [ // mind the order of delimiters(!?)
+            {left: "$$", right: "$$", display: true},
+            {left: "$", right: "$", display: false},
+            {left: "\\[", right: "\\]", display: true},
+            {left: "\\(", right: "\\)", display: false},
+        ]});
+      }
+      remark.macros.scale = function (percentage) {
+        var url = this;
+        return '<img src="' + url + '" style="width: ' + percentage + '" />';
+      };
+      var slideshow = remark.create(options, renderMath);
+    </script>
+
+    <script src="./assets/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad:true, closeCssStyles:true});</script>
+  </body>
+</html>
