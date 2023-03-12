@@ -928,6 +928,62 @@ Examples of capture lists:
 * `[this]` capture **this** by reference.
 * `[a, &b]` capture objects a by value, b by reference.
 
+---
+
+## Error handling with exceptions
+
+* We can `throw` an exception if there is an error
+
+* STL defines classes that represent exceptions. Base class: `std::exception`
+
+* An exception can be **caught** at any point of the program (try - catch) and even **thrown** further (throw)
+
+* The constructor of an exception receives a string error message as a parameter
+
+* This string can be called through a member function what()
+
+* Only used for **exceptional behavior**
+
+* Use `assert` instead
+
+---
+
+## code Examples
+
+```cpp
+double unsafe_function_runtime(bool badEvent) {
+  if (badEvent) throw std::runtime_error("something bad happended");
+}
+double unsafe_function_logical(bool badEvent) {
+  if (badEvent) throw std::logic_error("something bad happended");
+}
+double unsafe_function_my(bool badEvent) {
+  if (badEvent) throw MyException();
+}
+
+int main() {
+  try {
+    unsafe_function_runtime(true);
+    unsafe_function_logical(true);
+    unsafe_function_my(true);
+  } catch (std::runtime_error &error) {
+    std::cerr << "Runtime error : " << error.what() << "\n";
+  } catch (std::logic_error &error) {
+    std::cerr << "Logic error : " << error.what() << "\n";
+  } catch (MyException &error) {
+    std::cerr << "My error : " << error.what() << "\n";
+  } catch (...) {
+    std::cerr << "Error: unknown exception\n";
+  }
+}
+```
+
+---
+
+## Classes
+
+“C++ classes are a tools for creating new types that can be used as conveniently as the built-in types. In addition, derived classes and templates allow the programmer to express relationships among classes and to take advantage of such relationships.”
+
 <!-- *********************** End of slide content ********************** -->
 
 </textarea>
