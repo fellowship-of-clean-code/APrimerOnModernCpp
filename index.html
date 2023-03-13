@@ -944,7 +944,7 @@ Examples of capture lists:
 
 * Only used for **exceptional behavior**
 
-* Use `assert` instead
+* Use `assert` instead (disable all calls with `-DNDEBUG` in the release build)
 
 ---
 
@@ -980,9 +980,45 @@ int main() {
 
 ---
 
-## Classes
+# Classes
 
-“C++ classes are a tools for creating new types that can be used as conveniently as the built-in types. In addition, derived classes and templates allow the programmer to express relationships among classes and to take advantage of such relationships.”
+* “C++ classes are a tools for creating new types that can be used as conveniently as the built-in types. In addition, derived classes and templates allow the programmer to express relationships among classes and to take advantage of such relationships.” (Section 16 of “The C++ Programming Language Book by Bjarne Stroustrup”)
+
+* Classes are used to encapsulate **data** along with **methods** to process them
+
+* Every class or struct defines a new **type**
+
+* A variable of such type is an **instance of class** or an **object**
+
+---
+
+```cpp
+class Galaxy {
+   // data
+   double mass;
+   
+   // method
+   void print_mass() {
+      std::cout << mass << "\n";
+   }
+   
+   // method
+   void set_mass(double m) {
+      mass = m;
+};
+
+int main() {
+   Galaxy galaxy;
+   // galaxy is an object of type Galaxy
+   galaxy.set_mass(1e10);
+   galaxy.print_mass();
+
+   std::make_shared<Galaxy> galaxy;
+   // galaxy is a pointer to an object of type Galaxy
+   galaxy->set_mass(1e10);
+   galaxy->print_mass();
+}
+```
 
 <!-- *********************** End of slide content ********************** -->
 
